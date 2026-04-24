@@ -32,6 +32,13 @@ Once installed, just talk to your bot naturally:
 
 ---
 
+## Security Notes
+
+- This skill connects **only** to the Home Assistant URL you configure — no data is sent to third parties
+- Create a **dedicated HA user** with only the permissions your agent needs, rather than using your admin account
+- Store credentials in the openclaw.json env block with restricted file permissions (chmod 600 ~/.openclaw/openclaw.json)
+- If using HTTPS with a self-signed certificate, provide HOME_ASSISTANT_CA_CERT rather than setting HOME_ASSISTANT_SSL_VERIFY=false where possible
+
 ## Requirements
 
 - **OpenClaw** 2026.3.x or newer ([openclaw.ai](https://openclaw.ai))

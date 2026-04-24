@@ -1,0 +1,51 @@
+name: home-assistant-skill
+version: "2.1.0"
+description: >
+  Control and query Home Assistant via natural language. Covers lights,
+  switches, climate, temperature sensors, cameras, automations, energy
+  monitoring, EV chargers, presence detection, and home summaries.
+  Credentials are loaded from your OpenClaw environment - no tokens in
+  the skill file itself.
+author: openclaw-community
+license: MIT
+tags:
+  - home-assistant
+  - smart-home
+  - lights
+  - climate
+  - cameras
+  - automation
+  - energy
+  - iot
+  - heating
+  - telegram
+  - latest
+
+# Declared requirements — credentials stay in your openclaw.json env block
+requires:
+  env:
+    - name: HOME_ASSISTANT_URL
+      description: Your Home Assistant URL (e.g. http://homeassistant.local:8123)
+    - name: HOME_ASSISTANT_TOKEN
+      description: Long-lived access token from HA Profile > Security > Long-Lived Access Tokens
+  optional_env:
+    - name: HOME_ASSISTANT_SSL_VERIFY
+      description: Set to 'false' if using a self-signed certificate
+    - name: HOME_ASSISTANT_CA_CERT
+      description: Path to CA certificate file for HTTPS with self-signed certs
+  python_packages:
+    - requests
+    - urllib3
+
+# Security disclosure
+security:
+  scope: owner-operated
+  note: >
+    This skill connects only to the Home Assistant instance you configure
+    via HOME_ASSISTANT_URL. All credentials are supplied by the user in
+    their openclaw.json env block and are used only to call the HA REST API
+    on your own server. No data is sent to third parties. The long-lived
+    token grants access equivalent to your HA user account - use a
+    dedicated HA user with only the permissions needed.
+  credential_handling: user-supplied-only
+  network_access: user-own-home-assistant-only
