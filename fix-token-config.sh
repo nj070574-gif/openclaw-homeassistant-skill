@@ -68,16 +68,17 @@ fi
 if [[ -f "$OC_CONFIG" ]]; then
     cp "$OC_CONFIG" "${OC_CONFIG}.bak.fix-$(date +%Y%m%d_%H%M%S)"
     echo "✅ Backed up openclaw.json"
-    python3 -c "
-import json; from pathlib import Path
-p = Path('$OC_CONFIG'); cfg = json.loads(p.read_text())
-cfg.setdefault('env', {})['HOME_ASSISTANT_URL']   = '$HA_URL'
-cfg.setdefault('env', {})['HOME_ASSISTANT_TOKEN'] = '$HA_TOKEN'
-if '$HA_SSL_VERIFY' == 'false':
-    cfg['env']['HOME_ASSISTANT_SSL_VERIFY'] = 'false'
+    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_SSL="$HA_SSL_VERIFY" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
+import json, os
+from pathlib import Path
+p = Path(os.environ["OC_CONFIG"]); cfg = json.loads(p.read_text())
+cfg.setdefault("env", {})["HOME_ASSISTANT_URL"]   = os.environ["HA_URL"]
+cfg.setdefault("env", {})["HOME_ASSISTANT_TOKEN"] = os.environ["HA_TOKEN"]
+if os.environ.get("HA_SSL") == "false":
+    cfg["env"]["HOME_ASSISTANT_SSL_VERIFY"] = "false"
 p.write_text(json.dumps(cfg, indent=2))
-print('✅ openclaw.json updated')
-"
+print("openclaw.json updated")
+PY
 else
     mkdir -p "${HOME}/.openclaw/workspace/.secrets"
     printf '%s\n%s\n' "$HA_TOKEN" "$HA_URL" \

@@ -1,6 +1,6 @@
 ---
 name: home-assistant-skill
-version: "2.1.0"
+version: "2.2.0"
 description: >
   Control and query Home Assistant via natural language. Covers lights,
   switches, climate, temperature sensors, cameras, automations, energy
@@ -46,7 +46,7 @@ security:
   network_access: user-own-home-assistant-only
 ---
 
-# Home Assistant Integration v2.1 — OpenClaw Skill
+# Home Assistant Integration v2.2 — OpenClaw Skill
 
 Control and query your Home Assistant smart home in plain English through
 Telegram or any OpenClaw channel.
@@ -91,7 +91,9 @@ Send your bot: home summary
 - Connects **only** to your configured HOME_ASSISTANT_URL — no third-party calls
 - Create a dedicated HA user with only the permissions your agent needs
 - Store credentials in openclaw.json with restricted permissions (chmod 600)
-- Prefer HOME_ASSISTANT_CA_CERT over HOME_ASSISTANT_SSL_VERIFY=false for HTTPS
+- **This skill controls PHYSICAL devices** (lights, heating, locks, switches) and can change their real-world state — review before granting, and avoid giving the agent control of locks/alarms unless you actually need it
+- **Camera operations retrieve real images/snapshots from your home** — treat snapshot URLs and saved files as private
+- Avoid `HOME_ASSISTANT_SSL_VERIFY=false` except on a trusted local network — it disables certificate checks and the bearer token can be intercepted. Prefer `https://` with `HOME_ASSISTANT_CA_CERT`.
 
 ## What You Can Ask
 

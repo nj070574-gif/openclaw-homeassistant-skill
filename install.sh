@@ -55,7 +55,14 @@ if [[ -z "$EXISTING_TOKEN" ]]; then EXISTING_TOKEN="${HOME_ASSISTANT_TOKEN:-}"; 
 if [[ -n "$EXISTING_TOKEN" ]]; then
     ok "Found existing HOME_ASSISTANT_TOKEN (${#EXISTING_TOKEN} chars)"
     read -rp "   Configure new credentials? [y/N] " ans
-    [[ "$ans" =~ ^[Yy]$ ]] || { echo ""; ok "Keeping existing credentials."; echo ""; goto_restart; exit 0; }
+    [[ "$ans" =~ ^[Yy]$ ]] || {
+        echo ""; ok "Keeping existing credentials."
+        echo ""; echo "── Next Steps ────────────────────────────────────────"; echo ""
+        echo "   Restart OpenClaw: sudo systemctl restart openclaw"
+        echo "   Then test: ask your bot 'home summary' or 'what is the temperature?'"
+        echo ""
+        exit 0
+    }
 fi
 
 # 5. Collect credentials
@@ -79,14 +86,16 @@ echo ""
 if [[ -f "$OC_CONFIG" ]]; then
     cp "$OC_CONFIG" "${OC_CONFIG}.bak.ha-skill-$(date +%Y%m%d_%H%M%S)"
     ok "Backed up openclaw.json"
-    python3 -c "
-import json; from pathlib import Path
-p = Path('$OC_CONFIG'); cfg = json.loads(p.read_text())
-cfg.setdefault('env', {})['HOME_ASSISTANT_URL']   = '$HA_URL'
-cfg.setdefault('env', {})['HOME_ASSISTANT_TOKEN'] = '$HA_TOKEN'
-$( [[ "$HA_SSL_VERIFY" == "false" ]] && echo "cfg['env']['HOME_ASSISTANT_SSL_VERIFY'] = 'false'" )
-p.write_text(json.dumps(cfg, indent=2)); print('openclaw.json updated')
-"
+    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_SSL="$HA_SSL_VERIFY" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
+import json, os
+from pathlib import Path
+p = Path(os.environ["OC_CONFIG"]); cfg = json.loads(p.read_text())
+cfg.setdefault("env", {})["HOME_ASSISTANT_URL"]   = os.environ["HA_URL"]
+cfg.setdefault("env", {})["HOME_ASSISTANT_TOKEN"] = os.environ["HA_TOKEN"]
+if os.environ.get("HA_SSL") == "false":
+    cfg["env"]["HOME_ASSISTANT_SSL_VERIFY"] = "false"
+p.write_text(json.dumps(cfg, indent=2)); print("openclaw.json updated")
+PY
     ok "Credentials written to openclaw.json"
 else
     warn "openclaw.json not found — writing to secrets file"

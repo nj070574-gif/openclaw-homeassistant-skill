@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.2.0 — 2026-10-02
+
+### Fixed
+- `_load_config` crashed on the openclaw.json token-load path — `Path` was used but `pathlib` was never imported
+- Added the Priority-3 `.secrets/home_assistant.token` fallback the error message and docs already promised, so the documented path actually works
+- `install.sh` called an undefined `goto_restart` in the "keep existing credentials" branch — replaced with inline restart/next-steps output
+
+### Security
+- Warn on stderr when `HOME_ASSISTANT_URL` uses plain HTTP to a non-local host — the long-lived bearer token would be sent unencrypted
+- `camera_snapshot` now writes to a secure `tempfile.mkstemp` file instead of a predictable `/tmp/ha_snapshot.jpg` path (symlink/clobber risk)
+- Pruned overly-broad single-word triggers (e.g. light, door, lock, power, media, weather) that shadowed other skills
+- Added explicit user warnings in SKILL.md: this skill controls physical devices, and camera operations return private images
+- Strengthened `HOME_ASSISTANT_SSL_VERIFY=false` guidance toward `https://` + `HOME_ASSISTANT_CA_CERT`
+- Installers no longer string-interpolate the token/URL into Python source — credentials are passed via environment into a quoted heredoc
+
 ## [2.0.0] — 2026-04-12
 
 ### Breaking Changes
