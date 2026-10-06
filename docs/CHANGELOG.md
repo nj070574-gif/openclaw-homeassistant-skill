@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.4.0 — 2026-10-06
+
+### Security
+- **Removed the `HOME_ASSISTANT_SSL_VERIFY=false` disable path entirely.** TLS verification is now always on; self-signed certificates are supported the correct way, via `HOME_ASSISTANT_CA_CERT` (verify against your CA). The env var, its `_ssl_verify()` branch, the runtime "verification disabled" warning, and every mention in SKILL.md / README / install.sh / `.clawhub.yaml` are gone. Addresses the recurring "Unsafe Defaults" findings (there is no longer any way to turn verification off).
+- **Confirmation is now enforced in code, not just documented.** New `ha_confirm()` + `ha_call_service()` helpers in `_load_config`: state-changing service calls, `trigger_automation`, and `camera_snapshot` run a dry-run first and will not act without an explicit `CONFIRM` token that exactly matches the action string computed in code (so an instruction hidden in an entity name or notification can't satisfy the gate). Addresses the A.I.G T09 "state changes / camera capture lack an enforced confirmation gate" findings.
+- **Lock/alarm control blocked by default.** `lock` and `alarm_control_panel` service calls raise unless `HOME_ASSISTANT_ALLOW_LOCKS=true` is set for the deployment.
+- **Camera snapshots written owner-only (`0600`).**
+- **Fixed intent-code divergence (96%).** The manifest `notes` now declares the Priority-3 secrets-file token source that the code actually reads, matching code to documentation.
+
+### Changed
+- `_load_config` no longer imports/uses `urllib3` (no insecure requests to suppress warnings for); `python_packages` reduced to `requests`.
+- Restart guidance de-`sudo`'d — `systemctl --user restart openclaw` (the skill never runs `sudo`).
+- `install.sh` now offers a CA-cert path for self-signed certs instead of a "skip SSL verify" prompt, and its connectivity test uses `--cacert` rather than `curl -k`.
+- Version bumped to 2.4.0 (SKILL.md, home_assistant.json, README badge, `.clawhub.yaml`).
+
+### Notes
+- No change to endpoints or read-only snippet behaviour. Existing setups keep working; a self-signed HTTPS deployment that previously relied on `SSL_VERIFY=false` should switch to `HOME_ASSISTANT_CA_CERT`, and any deployment that needs lock/alarm control must opt in with `HOME_ASSISTANT_ALLOW_LOCKS=true`.
+
 ## 2.3.0 — 2026-10-06
 
 ### Security

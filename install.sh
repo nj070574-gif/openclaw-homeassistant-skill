@@ -58,7 +58,7 @@ if [[ -n "$EXISTING_TOKEN" ]]; then
     [[ "$ans" =~ ^[Yy]$ ]] || {
         echo ""; ok "Keeping existing credentials."
         echo ""; echo "── Next Steps ────────────────────────────────────────"; echo ""
-        echo "   Restart OpenClaw: sudo systemctl restart openclaw"
+        echo "   Restart OpenClaw so it loads the skill (e.g. systemctl --user restart openclaw)"
         echo "   Then test: ask your bot 'home summary' or 'what is the temperature?'"
         echo ""
         exit 0
@@ -74,11 +74,15 @@ HA_URL="${HA_URL:-http://homeassistant.local:8123}"
 read -rp "   Home Assistant Token: " HA_TOKEN
 [[ -z "$HA_TOKEN" ]] && { err "Token cannot be empty."; exit 1; }
 
-HA_SSL_VERIFY="true"
+# TLS verification stays ON. For a self-signed cert, point at your CA cert so
+# HTTPS is still verified — there is no disable-verification path.
+HA_CA_CERT=""
 if [[ "$HA_URL" == https://* ]]; then
-    warn "HTTPS URL detected."
-    read -rp "   Self-signed cert — skip SSL verify? [y/N] " ssl_ans
-    [[ "$ssl_ans" =~ ^[Yy]$ ]] && HA_SSL_VERIFY="false"
+    read -rp "   Self-signed cert? Path to your CA cert (blank if using a public CA): " HA_CA_CERT
+    if [[ -n "$HA_CA_CERT" && ! -f "$HA_CA_CERT" ]]; then
+        warn "CA cert not found at '$HA_CA_CERT' — continuing with system trust store."
+        HA_CA_CERT=""
+    fi
 fi
 
 # 6. Write to openclaw.json
@@ -86,14 +90,15 @@ echo ""
 if [[ -f "$OC_CONFIG" ]]; then
     cp "$OC_CONFIG" "${OC_CONFIG}.bak.ha-skill-$(date +%Y%m%d_%H%M%S)"
     ok "Backed up openclaw.json"
-    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_SSL="$HA_SSL_VERIFY" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
+    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_CA="$HA_CA_CERT" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
 import json, os
 from pathlib import Path
 p = Path(os.environ["OC_CONFIG"]); cfg = json.loads(p.read_text())
 cfg.setdefault("env", {})["HOME_ASSISTANT_URL"]   = os.environ["HA_URL"]
 cfg.setdefault("env", {})["HOME_ASSISTANT_TOKEN"] = os.environ["HA_TOKEN"]
-if os.environ.get("HA_SSL") == "false":
-    cfg["env"]["HOME_ASSISTANT_SSL_VERIFY"] = "false"
+ca = os.environ.get("HA_CA", "").strip()
+if ca:
+    cfg["env"]["HOME_ASSISTANT_CA_CERT"] = ca
 p.write_text(json.dumps(cfg, indent=2)); print("openclaw.json updated")
 PY
     ok "Credentials written to openclaw.json"
@@ -105,21 +110,21 @@ else
     ok "Token saved to secrets file"
 fi
 
-# 7. Test connectivity
+# 7. Test connectivity (TLS always verified; uses your CA cert if supplied)
 echo ""; echo "── Connectivity Test ─────────────────────────────────"
-CURL_K=""; [[ "$HA_SSL_VERIFY" == "false" ]] && CURL_K="-k"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $CURL_K \
+CURL_CA=(); [[ -n "$HA_CA_CERT" ]] && CURL_CA=(--cacert "$HA_CA_CERT")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${CURL_CA[@]}" \
     -H "Authorization: Bearer $HA_TOKEN" "${HA_URL}/api/" 2>/dev/null || echo "000")
 case "$HTTP_CODE" in
     200) ok "Home Assistant API reachable (HTTP 200)" ;;
     401) err "HTTP 401 — token invalid. Generate a new one in HA." ;;
-    000) err "Cannot reach $HA_URL — check URL and that HA is running" ;;
+    000) err "Cannot reach $HA_URL — check URL, TLS/CA cert, and that HA is running" ;;
     *)   warn "HTTP $HTTP_CODE — unexpected. Check HA logs." ;;
 esac
 
 # 8. Done
 echo ""; echo "── Next Steps ────────────────────────────────────────"; echo ""
-info "1. Restart OpenClaw:  sudo systemctl restart openclaw"
+info "1. Restart OpenClaw so it loads the skill (e.g. systemctl --user restart openclaw)"
 info "2. Test: ask your bot 'home summary' or 'what is the temperature?'"
 info "3. Issues? See README.md → Troubleshooting"
 echo ""; ok "Installation complete!"; echo ""

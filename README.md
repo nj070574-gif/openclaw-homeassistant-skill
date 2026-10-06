@@ -3,7 +3,7 @@
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://openclaw.ai)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.1%2B-41BDF5)](https://www.home-assistant.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.3.0-brightgreen)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.0-brightgreen)](docs/CHANGELOG.md)
 
 Control and query your **Home Assistant** smart home through your **OpenClaw AI agent** using plain English — via Telegram, the OpenClaw web UI, or any supported channel.
 
@@ -37,8 +37,8 @@ Once installed, just talk to your bot naturally:
 - This skill connects **only** to the Home Assistant URL you configure — no data is sent to third parties
 - Create a **dedicated HA user** with only the permissions your agent needs, rather than using your admin account
 - Store credentials in the openclaw.json env block with restricted file permissions (chmod 600 ~/.openclaw/openclaw.json)
-- If using HTTPS with a self-signed certificate, provide HOME_ASSISTANT_CA_CERT rather than setting HOME_ASSISTANT_SSL_VERIFY=false where possible (the skill warns at runtime if verification is disabled)
-- **Confirm state-changing actions.** This skill controls physical devices — the agent should confirm before turning lights/heating/switches on or off, setting climate, firing automations/scenes, and especially **locking/unlocking or arming/disarming**. Read-only queries (summaries, sensor reads, listings) need no confirmation.
+- TLS verification is always on. For HTTPS with a self-signed certificate, set HOME_ASSISTANT_CA_CERT to your CA cert so TLS is still verified — there is no option to disable certificate checking
+- **State changes are gated in code.** This skill controls physical devices. `ha_call_service`/`ha_confirm` will not perform a state change without an explicit confirmation token, and `lock`/`alarm_control_panel` are blocked unless you set `HOME_ASSISTANT_ALLOW_LOCKS=true`. Read-only queries (summaries, sensor reads, listings) run without a gate.
 - **Cameras are private.** `get_cameras`/`camera_snapshot` return real images and reveal occupancy — confirm before capturing and treat snapshot files/URLs as sensitive.
 - **Rotate the token.** A long-lived token stays valid indefinitely; rotate it periodically and revoke immediately if transport was ever insecure or the host was exposed.
 
@@ -47,7 +47,7 @@ Once installed, just talk to your bot naturally:
 - **OpenClaw** 2026.3.x or newer ([openclaw.ai](https://openclaw.ai))
 - **Home Assistant** 2023.1 or newer (REST API enabled by default)
 - **Python** 3.9+ on your OpenClaw server
-- `requests` + `urllib3` Python packages (usually already present)
+- `requests` Python package (usually already present)
 
 ---
 
@@ -105,12 +105,7 @@ Open `~/.openclaw/openclaw.json` and add to the `"env"` block:
 }
 ```
 
-**Using HTTPS with a self-signed certificate?** Also add:
-```json
-"HOME_ASSISTANT_SSL_VERIFY": "false"
-```
-
-**Using HTTPS with your own CA certificate?**
+**Using HTTPS with a self-signed certificate?** Point at your CA cert so TLS is still verified:
 ```json
 "HOME_ASSISTANT_CA_CERT": "/path/to/your-ca.crt"
 ```
@@ -126,7 +121,7 @@ chmod 600 ~/.openclaw/workspace/.secrets/home_assistant.token
 ### Step 4 — Restart OpenClaw
 
 ```bash
-sudo systemctl restart openclaw
+systemctl --user restart openclaw
 ```
 
 ### Step 5 — Test it
@@ -152,8 +147,8 @@ The skill checks for credentials in this exact priority order:
 |---|---|---|---|
 | `HOME_ASSISTANT_URL` | Yes | `http://homeassistant.local:8123` | Your HA instance URL |
 | `HOME_ASSISTANT_TOKEN` | **Yes** | — | Long-lived access token from HA |
-| `HOME_ASSISTANT_SSL_VERIFY` | No | `true` | Set `false` for self-signed HTTPS certs |
-| `HOME_ASSISTANT_CA_CERT` | No | — | Path to custom CA cert file |
+| `HOME_ASSISTANT_CA_CERT` | No | — | Path to your CA cert so HTTPS with a self-signed cert is verified |
+| `HOME_ASSISTANT_ALLOW_LOCKS` | No | `false` | Set `true` to allow lock/alarm control (blocked in code otherwise) |
 
 ---
 
@@ -254,15 +249,11 @@ HA → Profile → Security → Long-Lived Access Tokens → Delete old → Crea
 
 ### `SSL certificate verify failed`
 
-Prefer pointing at your CA certificate so HTTPS is still verified:
+Point at your CA certificate so HTTPS is still verified:
 ```json
 "HOME_ASSISTANT_CA_CERT": "/path/to/your-ca.crt"
 ```
-Only as a trusted-LAN last resort, disable verification (the skill warns at runtime, and the bearer token can then be intercepted on an untrusted network):
-```json
-"HOME_ASSISTANT_SSL_VERIFY": "false"
-```
-Then restart OpenClaw.
+Then restart OpenClaw. (There is no option to disable certificate verification.)
 
 ### `Connection refused` or timeout
 

@@ -16,13 +16,12 @@ requires:
       Tokens
     name: HOME_ASSISTANT_TOKEN
   optional_env:
-  - description: Set to 'false' if using a self-signed certificate
-    name: HOME_ASSISTANT_SSL_VERIFY
-  - description: Path to CA certificate file for HTTPS with self-signed certs
+  - description: Path to a CA certificate file so HTTPS with a self-signed cert is verified
     name: HOME_ASSISTANT_CA_CERT
+  - description: Set to 'true' to allow lock/alarm control (blocked in code by default)
+    name: HOME_ASSISTANT_ALLOW_LOCKS
   python_packages:
   - requests
-  - urllib3
 security:
   credential_handling: user-supplied-only
   network_access: user-own-home-assistant-only
@@ -46,4 +45,4 @@ tags:
 - heating
 - telegram
 - latest
-version: 2.3.0
+version: 2.4.0

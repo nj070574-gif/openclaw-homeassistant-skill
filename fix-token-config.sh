@@ -38,7 +38,7 @@ if [[ "$CURRENT" == "FOUND_IN_OC_JSON" ]]; then
     python3 -c "import json; json.load(open('$OC_CONFIG')); print('✅ JSON is valid')" 2>/dev/null \
         || echo "❌ openclaw.json has invalid JSON — fix it before restarting"
     echo ""
-    echo "   Restart: sudo systemctl restart openclaw"
+    echo "   Restart OpenClaw so it reloads (e.g. systemctl --user restart openclaw)"
     exit 0
 fi
 
@@ -58,24 +58,28 @@ read -rp "Token: " HA_TOKEN
 read -rp "Home Assistant URL [http://homeassistant.local:8123]: " HA_URL
 HA_URL="${HA_URL:-http://homeassistant.local:8123}"
 
-HA_SSL_VERIFY="true"
+HA_CA_CERT=""
 if [[ "$HA_URL" == https://* ]]; then
-    read -rp "Self-signed cert — skip SSL verify? [y/N]: " ssl_ans
-    [[ "$ssl_ans" =~ ^[Yy]$ ]] && HA_SSL_VERIFY="false"
+    read -rp "Self-signed cert? Path to your CA cert (blank if using a public CA): " HA_CA_CERT
+    if [[ -n "$HA_CA_CERT" && ! -f "$HA_CA_CERT" ]]; then
+        echo "⚠️  CA cert not found at '$HA_CA_CERT' — continuing with system trust store."
+        HA_CA_CERT=""
+    fi
 fi
 
 # 3. Write to openclaw.json
 if [[ -f "$OC_CONFIG" ]]; then
     cp "$OC_CONFIG" "${OC_CONFIG}.bak.fix-$(date +%Y%m%d_%H%M%S)"
     echo "✅ Backed up openclaw.json"
-    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_SSL="$HA_SSL_VERIFY" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
+    HA_URL="$HA_URL" HA_TOKEN="$HA_TOKEN" HA_CA="$HA_CA_CERT" OC_CONFIG="$OC_CONFIG" python3 - <<'PY'
 import json, os
 from pathlib import Path
 p = Path(os.environ["OC_CONFIG"]); cfg = json.loads(p.read_text())
 cfg.setdefault("env", {})["HOME_ASSISTANT_URL"]   = os.environ["HA_URL"]
 cfg.setdefault("env", {})["HOME_ASSISTANT_TOKEN"] = os.environ["HA_TOKEN"]
-if os.environ.get("HA_SSL") == "false":
-    cfg["env"]["HOME_ASSISTANT_SSL_VERIFY"] = "false"
+ca = os.environ.get("HA_CA", "").strip()
+if ca:
+    cfg["env"]["HOME_ASSISTANT_CA_CERT"] = ca
 p.write_text(json.dumps(cfg, indent=2))
 print("openclaw.json updated")
 PY
@@ -97,8 +101,8 @@ fi
 
 # 5. Test connectivity
 echo ""
-CURL_K=""; [[ "$HA_SSL_VERIFY" == "false" ]] && CURL_K="-k"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $CURL_K \
+CURL_CA=(); [[ -n "$HA_CA_CERT" ]] && CURL_CA=(--cacert "$HA_CA_CERT")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${CURL_CA[@]}" \
     -H "Authorization: Bearer $HA_TOKEN" "${HA_URL}/api/" 2>/dev/null || echo "000")
 case "$HTTP_CODE" in
     200) echo "✅ HA API reachable and token valid (HTTP 200)" ;;
@@ -109,7 +113,7 @@ esac
 
 echo ""
 echo "=== Restart OpenClaw ==="
-echo "  sudo systemctl restart openclaw"
+echo "  systemctl --user restart openclaw"
 echo ""
 echo "Then test: ask your bot 'home summary'"
 echo ""
