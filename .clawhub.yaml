@@ -20,6 +20,8 @@ requires:
     name: HOME_ASSISTANT_CA_CERT
   - description: Set to 'true' to allow lock/alarm control (blocked in code by default)
     name: HOME_ASSISTANT_ALLOW_LOCKS
+  - description: Set to 'true' to allow the token over plain HTTP to a non-loopback host (trusted LAN only; refused by default)
+    name: HOME_ASSISTANT_ALLOW_HTTP
   python_packages:
   - requests
 security:
@@ -45,4 +47,4 @@ tags:
 - heating
 - telegram
 - latest
-version: 2.4.0
+version: 2.5.0

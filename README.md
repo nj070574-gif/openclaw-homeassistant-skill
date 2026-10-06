@@ -3,7 +3,7 @@
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://openclaw.ai)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.1%2B-41BDF5)](https://www.home-assistant.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.4.0-brightgreen)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.5.0-brightgreen)](docs/CHANGELOG.md)
 
 Control and query your **Home Assistant** smart home through your **OpenClaw AI agent** using plain English — via Telegram, the OpenClaw web UI, or any supported channel.
 
@@ -37,7 +37,7 @@ Once installed, just talk to your bot naturally:
 - This skill connects **only** to the Home Assistant URL you configure — no data is sent to third parties
 - Create a **dedicated HA user** with only the permissions your agent needs, rather than using your admin account
 - Store credentials in the openclaw.json env block with restricted file permissions (chmod 600 ~/.openclaw/openclaw.json)
-- TLS verification is always on. For HTTPS with a self-signed certificate, set HOME_ASSISTANT_CA_CERT to your CA cert so TLS is still verified — there is no option to disable certificate checking
+- TLS verification is always on. For HTTPS with a self-signed certificate, set HOME_ASSISTANT_CA_CERT to your CA cert so TLS is still verified — there is no option to disable certificate checking. Plain HTTP to a non-loopback host is refused unless you set `HOME_ASSISTANT_ALLOW_HTTP=true` (trusted LAN only — the token is then sent unencrypted)
 - **State changes are gated in code.** This skill controls physical devices. `ha_call_service`/`ha_confirm` will not perform a state change without an explicit confirmation token, and `lock`/`alarm_control_panel` are blocked unless you set `HOME_ASSISTANT_ALLOW_LOCKS=true`. Read-only queries (summaries, sensor reads, listings) run without a gate.
 - **Cameras are private.** `get_cameras`/`camera_snapshot` return real images and reveal occupancy — confirm before capturing and treat snapshot files/URLs as sensitive.
 - **Rotate the token.** A long-lived token stays valid indefinitely; rotate it periodically and revoke immediately if transport was ever insecure or the host was exposed.
@@ -149,6 +149,7 @@ The skill checks for credentials in this exact priority order:
 | `HOME_ASSISTANT_TOKEN` | **Yes** | — | Long-lived access token from HA |
 | `HOME_ASSISTANT_CA_CERT` | No | — | Path to your CA cert so HTTPS with a self-signed cert is verified |
 | `HOME_ASSISTANT_ALLOW_LOCKS` | No | `false` | Set `true` to allow lock/alarm control (blocked in code otherwise) |
+| `HOME_ASSISTANT_ALLOW_HTTP` | No | `false` | Set `true` to allow the token over plain HTTP to a non-loopback host (trusted LAN only; refused otherwise) |
 
 ---
 

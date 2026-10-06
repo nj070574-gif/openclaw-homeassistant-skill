@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.5.0 — 2026-10-06
+
+### Security
+- **Cleartext HTTP now fails closed.** Sending the long-lived bearer token over plain `http://` to a non-loopback host is refused (`RuntimeError`) instead of merely warned. Loopback (`localhost`/`127.0.0.1`/`::1`) is exempt; a `.local`/LAN host is **not** (it still traverses an untrusted network). To keep using plain HTTP on a trusted LAN, set the new `HOME_ASSISTANT_ALLOW_HTTP=true` opt-in — the token is then sent unencrypted and a runtime warning is printed. Addresses the A.I.G T09 "long-lived token transmitted over cleartext HTTP" Error finding.
+
+### Changed
+- **Accurate gating claim (fixes a 99% description-behavior mismatch).** The manifest/notes and SKILL.md previously implied *all* state-changing service calls are code-gated. They now state precisely that the `call_service`, `trigger_automation` and `camera_snapshot` snippets go through `ha_confirm`, while `ha_get`/`ha_post` are the low-level primitives those helpers build on (use the gated snippets, not a raw `ha_post`, for state changes).
+- **Accurate credential-source claim (fixes a 96% description-behavior mismatch).** The description no longer says credentials come "from the OpenClaw environment only" — it now matches the code: supplied via environment variable, `openclaw.json`, or a secrets file, and never stored in the skill files.
+- New `HOME_ASSISTANT_ALLOW_HTTP` documented in SKILL.md frontmatter, README env table, `.clawhub.yaml`, and troubleshooting. Version bumped to 2.5.0.
+
+### Notes
+- Behavioural change for existing self-hosted setups on plain HTTP (e.g. `http://homeassistant.local:8123`, Home Assistant's own default): add `HOME_ASSISTANT_ALLOW_HTTP=true`, or switch to `https://` (with `HOME_ASSISTANT_CA_CERT` for a self-signed cert). No change to endpoints, snippet behaviour, or the confirmation/lock gates.
+
 ## 2.4.0 — 2026-10-06
 
 ### Security
