@@ -1,14 +1,15 @@
 ---
 name: home-assistant-skill
-version: "2.5.0"
+version: "2.5.1"
 description: >
   Control and query Home Assistant via natural language. Covers lights,
   switches, climate, temperature sensors, cameras, automations, energy
   monitoring, EV chargers, presence detection, door sensors, and home
   summaries. Credentials are supplied by you (environment variable,
   openclaw.json, or a secrets file), never stored in the skill files. Acts only
-  on explicit Home Assistant requests; the state-changing snippets (call_service,
-  trigger_automation, camera_snapshot) are gated in code and confirmed first.
+  on explicit Home Assistant requests; every snippet that calls a service
+  (call_service, trigger_automation, camera_snapshot, send_notification) is
+  gated in code and confirmed first.
 author: openclaw-community
 license: MIT
 tags:
@@ -80,7 +81,7 @@ Telegram or any OpenClaw channel.
 
 This skill controls **physical devices** and can retrieve **private imagery** from your home. Treat it accordingly:
 
-- **The state-changing snippets are gated in code, not just prose.** The `call_service`, `trigger_automation` and `camera_snapshot` snippets run through `ha_confirm`/`ha_call_service` and will not act without an explicit confirmation token; `lock`/`alarm_control_panel` are **blocked unless** you set `HOME_ASSISTANT_ALLOW_LOCKS=true`. `ha_get`/`ha_post` are the low-level primitives these helpers build on — use the gated snippets (not a raw `ha_post`) for state changes. Read-only queries (summaries, sensor reads, listings) run without a gate.
+- **Every snippet that calls a service is gated in code, not just prose.** The `call_service`, `trigger_automation`, `camera_snapshot` and `send_notification` snippets run through `ha_confirm`/`ha_call_service` and will not act without an explicit confirmation token; `lock`/`alarm_control_panel` are **blocked unless** you set `HOME_ASSISTANT_ALLOW_LOCKS=true`. `ha_get`/`ha_post` are the low-level primitives these helpers build on and are **not** themselves gated — use the gated snippets (not a raw `ha_post`) for anything that calls a service. Read-only queries (summaries, sensor reads, listings) run without a gate.
 - **Cameras are private.** `get_cameras`/`camera_snapshot` return real images and reveal occupancy patterns. `camera_snapshot` is behind the same confirmation gate; snapshots are written owner-only (`0600`). Treat snapshot URLs and saved files as sensitive.
 - **Own-instance only.** Point the skill only at a Home Assistant instance you own, with a token you control.
 - **Least-privilege token.** Create a dedicated HA user with only the permissions your agent needs (avoid admin), store credentials `chmod 600`, and rotate/revoke the long-lived token periodically or if transport was ever insecure.
@@ -167,7 +168,7 @@ The skill provides 15 Python snippets executed via the OpenClaw exec tool:
 - `get_automations` — all automations with last-triggered
 - `trigger_automation` — fire a specific automation (code-gated)
 - `get_energy` — energy and power sensors
-- `send_notification` — send via the user's own HA notify service only
+- `send_notification` — send via the user's own HA notify service only (code-gated by `ha_confirm`)
 
 ## Skill File
 

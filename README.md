@@ -3,7 +3,7 @@
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://openclaw.ai)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.1%2B-41BDF5)](https://www.home-assistant.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.5.0-brightgreen)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.5.1-brightgreen)](docs/CHANGELOG.md)
 
 Control and query your **Home Assistant** smart home through your **OpenClaw AI agent** using plain English — via Telegram, the OpenClaw web UI, or any supported channel.
 

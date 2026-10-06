@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.1 — 2026-10-06
+
+### Security
+- **`send_notification` is now gated by `ha_confirm`, like the other service calls.** It previously called `ha_post` directly, which contradicted the documented claim that state-changing snippets are gated — the moderation re-scan flagged this as a 98% Description-Behavior mismatch. Now every snippet that calls a service (`call_service`, `trigger_automation`, `camera_snapshot`, `send_notification`) runs through the in-code confirmation gate, so the claim is exactly true. `ha_get`/`ha_post` remain the ungated low-level primitives, documented as such.
+
+### Notes
+- Docs-and-one-snippet change; no new capability. This closes the last concrete high-confidence finding so the "Pass" rating is stable rather than oscillating on re-scan. Version 2.5.1.
+
 ## 2.5.0 — 2026-10-06
 
 ### Security
