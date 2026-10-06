@@ -3,7 +3,7 @@
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://openclaw.ai)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.1%2B-41BDF5)](https://www.home-assistant.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.3.0-brightgreen)](docs/CHANGELOG.md)
 
 Control and query your **Home Assistant** smart home through your **OpenClaw AI agent** using plain English — via Telegram, the OpenClaw web UI, or any supported channel.
 
@@ -37,7 +37,10 @@ Once installed, just talk to your bot naturally:
 - This skill connects **only** to the Home Assistant URL you configure — no data is sent to third parties
 - Create a **dedicated HA user** with only the permissions your agent needs, rather than using your admin account
 - Store credentials in the openclaw.json env block with restricted file permissions (chmod 600 ~/.openclaw/openclaw.json)
-- If using HTTPS with a self-signed certificate, provide HOME_ASSISTANT_CA_CERT rather than setting HOME_ASSISTANT_SSL_VERIFY=false where possible
+- If using HTTPS with a self-signed certificate, provide HOME_ASSISTANT_CA_CERT rather than setting HOME_ASSISTANT_SSL_VERIFY=false where possible (the skill warns at runtime if verification is disabled)
+- **Confirm state-changing actions.** This skill controls physical devices — the agent should confirm before turning lights/heating/switches on or off, setting climate, firing automations/scenes, and especially **locking/unlocking or arming/disarming**. Read-only queries (summaries, sensor reads, listings) need no confirmation.
+- **Cameras are private.** `get_cameras`/`camera_snapshot` return real images and reveal occupancy — confirm before capturing and treat snapshot files/URLs as sensitive.
+- **Rotate the token.** A long-lived token stays valid indefinitely; rotate it periodically and revoke immediately if transport was ever insecure or the host was exposed.
 
 ## Requirements
 
@@ -251,7 +254,11 @@ HA → Profile → Security → Long-Lived Access Tokens → Delete old → Crea
 
 ### `SSL certificate verify failed`
 
-Add to your `openclaw.json` env block:
+Prefer pointing at your CA certificate so HTTPS is still verified:
+```json
+"HOME_ASSISTANT_CA_CERT": "/path/to/your-ca.crt"
+```
+Only as a trusted-LAN last resort, disable verification (the skill warns at runtime, and the bearer token can then be intercepted on an untrusted network):
 ```json
 "HOME_ASSISTANT_SSL_VERIFY": "false"
 ```
